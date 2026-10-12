@@ -1,0 +1,199 @@
+# .github/workflows/ai-track.yml
+#
+# CI for the opt-in AI track (#88, #89):
+#   - the default stack (no profile) must not drift: golden-stack guard
+#   - docker-compose.yml must be valid with and without --profile ai
+#   - mind-core must build for linux/amd64 and linux/arm64, and pass a
+#     smoke test natively on both, including with no network at all
+
+name: AI track
+
+on:
+  pull_request:
+    paths:
+      - docker-compose.yml
+      - agentic-ai-labs/**
+      - .github/golden-stack/**
+      - .github/workflows/ai-track.yml
+  push:
+    branches:
+      - master
+    paths:
+      - docker-compose.yml
+      - agentic-ai-labs/**
+      - .github/golden-stack/**
+      - .github/workflows/ai-track.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-track-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compose:
+    name: Compose config + golden-stack guard (compose ${{ matrix.compose }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        # "runner" is the Compose plugin on the GitHub image; 2.26.1 is the
+        # docker-compose that install.sh gets from Parrot's apt repository.
+        compose: [runner, "2.26.1"]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install docker-compose ${{ matrix.compose }}
+        if: matrix.compose == '2.26.1'
+        run: |
+          curl -fsSLo "$RUNNER_TEMP/docker-compose" \
+            https://github.com/docker/compose/releases/download/v2.26.1/docker-compose-linux-x86_64
+          echo "2f61856d1b8c9de29ffdaedaa1c6d0a5fc5c79da45068f1f4310feed8d3a3f61  $RUNNER_TEMP/docker-compose" | sha256sum -c -
+          chmod +x "$RUNNER_TEMP/docker-compose"
+          echo "COMPOSE=$RUNNER_TEMP/docker-compose" >> "$GITHUB_ENV"
+
+      - name: Compose version
+        run: ${COMPOSE:-docker compose} version
+
+      - name: Config is valid without a profile
+        run: ${COMPOSE:-docker compose} config -q
+
+      - name: Config is valid with --profile ai
+        run: ${COMPOSE:-docker compose} --profile ai config -q
+
+      - name: Golden-stack guard (default stack unchanged; ai profile adds only mind-core)
+        run: python3 .github/golden-stack/check.py
+
+      - name: websploit-isolated is internal on 10.7.7.0/24
+        # No service joins this network yet, so Compose leaves it out of `config`.
+        # A throwaway probe service joins it to make the definition visible.
+        run: |
+          cat > "$RUNNER_TEMP/isolated-probe.yml" <<'EOF'
+          services:
+            isolated-probe:
+              image: busybox
+              profiles: ["isolated-probe"]
+              networks:
+                - websploit-isolated
+          EOF
+          ${COMPOSE:-docker compose} -f docker-compose.yml -f "$RUNNER_TEMP/isolated-probe.yml" \
+            --profile isolated-probe config --format json | python3 -c '
+          import json, sys
+          net = json.load(sys.stdin)["networks"]["websploit-isolated"]
+          ipam = net["ipam"]["config"][0]
+          assert net.get("internal") is True, net
+          assert (ipam["subnet"], ipam["gateway"]) == ("10.7.7.0/24", "10.7.7.1"), ipam
+          print("websploit-isolated: internal=true", ipam)'
+
+  build:
+    name: Multi-arch build (linux/amd64, linux/arm64)
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # QEMU is used for this build step only; mind-core itself runs natively.
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Build mind-core for linux/amd64 and linux/arm64
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: ./agentic-ai-labs/mind-core
+          platforms: linux/amd64,linux/arm64
+          push: false
+
+  smoke:
+    name: Smoke test (${{ matrix.arch }}, native)
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    env:
+      COMPOSE_PROJECT_NAME: ai-ci
+      IMAGE: ai-ci-mind-core
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Build mind-core natively
+        run: docker compose --profile ai build mind-core
+
+      - name: Unit tests inside the image (no network)
+        run: |
+          docker run --rm --network none \
+            -v "$PWD/agentic-ai-labs/mind-core/tests:/app/tests:ro" \
+            "$IMAGE" python -m unittest discover -s tests -v
+
+      - name: Start mind-core and wait for its healthcheck
+        run: docker compose --profile ai up -d --wait --wait-timeout 120 mind-core
+
+      - name: Only mind-core is running, at 10.6.6.50
+        run: |
+          docker compose --profile ai ps
+          test "$(docker compose ps --services --status running)" = "mind-core"
+          test "$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' mind-core)" = "10.6.6.50"
+
+      - name: HTTP checks on host port 5030
+        run: |
+          curl -fsS http://localhost:5030/health | python3 -c '
+          import json, sys
+          body = json.load(sys.stdin)
+          assert body["status"] == "ok" and body["backend"] == "deterministic", body
+          print("health:", body)'
+          curl -fsS http://localhost:5030/v1/chat/completions \
+            -H 'Content-Type: application/json' \
+            -d '{"model": "default", "messages": [{"role": "user", "content": "ping"}]}' | python3 -c '
+          import json, sys
+          body = json.load(sys.stdin)
+          assert body["choices"][0]["message"]["content"] == "pong", body
+          assert body["mind_core"] == {"backend": "deterministic", "rule": "ping", "fallback": False}, body
+          print("chat:", body["choices"][0]["message"], body["mind_core"])'
+
+      - name: Healthy with no network at all (offline after build)
+        run: |
+          docker run -d --name mind-core-offline --network none "$IMAGE"
+          for _ in $(seq 1 30); do
+            status=$(docker inspect -f '{{.State.Health.Status}}' mind-core-offline)
+            [ "$status" = healthy ] && break
+            sleep 2
+          done
+          echo "offline health: $status"
+          test "$status" = healthy
+          docker exec mind-core-offline python -c 'import json, urllib.request as u; r = u.urlopen(u.Request("http://127.0.0.1:5030/v1/chat/completions", json.dumps({"messages": [{"role": "user", "content": "ping"}]}).encode(), {"Content-Type": "application/json"})); body = json.load(r); assert body["choices"][0]["message"]["content"] == "pong", body; print("offline chat ok")'
+
+      - name: Record footprint
+        run: |
+          for _ in $(seq 1 50); do curl -fsS -o /dev/null http://localhost:5030/v1/chat/completions \
+            -H 'Content-Type: application/json' -d '{"messages": [{"role": "user", "content": "hello"}]}'; done
+          {
+            echo "### mind-core footprint (${{ matrix.arch }})"
+            echo "| What | Value |"
+            echo "| --- | --- |"
+            echo "| Image size (docker image inspect) | $(docker image inspect "$IMAGE" --format '{{.Size}}' | awk '{printf "%.1f MB", $1/1e6}') |"
+            echo "| Unpacked root filesystem | $(docker run --rm --user 0 --entrypoint du "$IMAGE" -sxm / | cut -f1) MB |"
+            echo "| RAM after 50 requests | $(docker stats --no-stream --format '{{.MemUsage}}' mind-core) |"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Logs on failure
+        if: failure()
+        run: |
+          docker compose --profile ai logs mind-core || true
+          docker logs mind-core-offline || true
+
+      - name: Tear down
+        if: always()
+        run: |
+          docker rm -f mind-core-offline || true
+          docker compose --profile ai down -v
