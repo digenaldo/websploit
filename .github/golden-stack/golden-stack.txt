@@ -1,0 +1,26 @@
+# Golden fingerprint of the default WebSploit stack (no Compose profile).
+# Checked by .github/golden-stack/check.py in CI. A diff here means the
+# default `docker compose up -d` changed. Only regenerate it (--update) for an
+# intentional, reviewed change to the default stack.
+
+network websploit driver=bridge internal=false ipam=subnet:10.6.6.0/24,gateway:10.6.6.1
+service deserial-gate container=deserial-gate ip=websploit=10.6.6.42 ports=5022:5022/tcp restart=unless-stopped platform=- source=build:additional-labs/deserial-gate mem_limit=- cpus=- deploy_resources=-
+service dvwa container=dvwa ip=websploit=10.6.6.13 ports=- restart=unless-stopped platform=linux/amd64 source=image:santosomar/dvwa mem_limit=- cpus=- deploy_resources=-
+service entity-smuggler container=entity-smuggler ip=websploit=10.6.6.36 ports=5013:5013/tcp restart=unless-stopped platform=- source=build:additional-labs/XXE mem_limit=- cpus=- deploy_resources=-
+service galactic-archives container=galactic-archives ip=websploit=10.6.6.20 ports=- restart=unless-stopped platform=linux/amd64 source=image:santosomar/galactic-archives mem_limit=- cpus=- deploy_resources=-
+service graphql-galaxy container=graphql-galaxy ip=websploit=10.6.6.44 ports=5023:5023/tcp restart=unless-stopped platform=- source=build:additional-labs/GraphQL mem_limit=- cpus=- deploy_resources=-
+service gravemind container=gravemind ip=websploit=10.6.6.23 ports=- restart=unless-stopped platform=linux/amd64 source=image:santosomar/gravemind mem_limit=- cpus=- deploy_resources=-
+service hydra-nexus container=hydra-nexus ip=websploit=10.6.6.30 ports=5010:5010/tcp restart=unless-stopped platform=- source=build:additional-labs/Multi-Vulnerability-Gauntlet mem_limit=- cpus=- deploy_resources=-
+service juice-shop container=juice-shop ip=websploit=10.6.6.12 ports=- restart=unless-stopped platform=- source=image:bkimminich/juice-shop mem_limit=- cpus=- deploy_resources=-
+service maze-walker container=maze-walker ip=websploit=10.6.6.35 ports=5003:81/tcp restart=unless-stopped platform=- source=build:additional-labs/Path_Traversal mem_limit=- cpus=- deploy_resources=-
+service phantom-script container=phantom-script ip=websploit=10.6.6.31 ports=5011:5011/tcp restart=unless-stopped platform=- source=build:additional-labs/XSS mem_limit=- cpus=- deploy_resources=-
+service proto-pollute container=proto-pollute ip=websploit=10.6.6.45 ports=5004:5004/tcp restart=unless-stopped platform=- source=build:additional-labs/Prototype_Pollution mem_limit=- cpus=- deploy_resources=-
+service redis-rogue container=redis-rogue ip=websploit=10.6.6.43 ports=- restart=unless-stopped platform=linux/amd64 source=image:santosomar/dc31_01:latest mem_limit=- cpus=- deploy_resources=-
+service render-reign container=render-reign ip=websploit=10.6.6.41 ports=5021:5021/tcp restart=unless-stopped platform=- source=build:additional-labs/render-reign mem_limit=- cpus=- deploy_resources=-
+service shell-inject container=shell-inject ip=websploit=10.6.6.34 ports=5002:5000/tcp restart=unless-stopped platform=- source=build:additional-labs/Command_Injection mem_limit=- cpus=- deploy_resources=-
+service sqli-breach container=sqli-breach ip=websploit=10.6.6.33 ports=5001:5000/tcp restart=unless-stopped platform=- source=build:additional-labs/SQLi mem_limit=- cpus=- deploy_resources=-
+service token-tower container=token-tower ip=websploit=10.6.6.40 ports=5020:5020/tcp restart=unless-stopped platform=- source=build:additional-labs/token-tower mem_limit=- cpus=- deploy_resources=-
+service trojan-relay container=trojan-relay ip=websploit=10.6.6.32 ports=5012:5012/tcp restart=unless-stopped platform=- source=build:additional-labs/SSRF mem_limit=- cpus=- deploy_resources=-
+service webgoat container=webgoat ip=websploit=10.6.6.11 ports=- restart=unless-stopped platform=linux/amd64 source=image:santosomar/webgoat mem_limit=- cpus=- deploy_resources=-
+service y-wing container=y-wing ip=websploit=10.6.6.26 ports=- restart=unless-stopped platform=linux/amd64 source=image:santosomar/ywing:latest mem_limit=- cpus=- deploy_resources=-
+profile ai adds: -
