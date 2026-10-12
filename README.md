@@ -85,6 +85,16 @@ Custom-built labs focusing on specific vulnerability categories. These labs are 
 | **graphql-galaxy** | 10.6.6.44 | 5023 | GraphQL Introspection, IDOR |
 | **proto-pollute** | 10.6.6.45 | 5004 | Prototype Pollution / DOM Clobbering |
 
+#### AI Track (opt-in)
+
+AI/LLM application-security labs mapped to the OWASP Top 10 for LLM Applications (2025). They are built from the `./agentic-ai-labs/` directory and only start with the Compose profile `ai`; a default `docker compose up -d` does not include them. See [agentic-ai-labs/README.md](agentic-ai-labs/README.md).
+
+| Container | IP Address | Port | Role |
+|-----------|------------|------|------|
+| **mind-core** | 10.6.6.50 | 5030 | Shared LLM backend for the AI labs (deterministic; no GPU or API key) |
+
+`10.6.6.50`–`10.6.6.59` and host ports `5030`–`5039` are reserved for this track.
+
 ---
 
 ## Quick Start Commands
@@ -95,6 +105,9 @@ docker compose up -d
 
 # Start with build (for additional labs)
 docker compose up -d --build
+
+# Also start the opt-in AI track
+docker compose --profile ai up -d --build
 
 # View running containers
 docker compose ps
@@ -140,6 +153,9 @@ docker compose build --no-cache [container_name]
 │  ├── redis-rogue       10.6.6.43                            │
 │  ├── graphql-galaxy    10.6.6.44                            │
 │  └── proto-pollute     10.6.6.45                            │
+│                                                             │
+│  AI track (opt-in, --profile ai):                           │
+│  └── mind-core         10.6.6.50                            │
 └─────────────────────────────────────────────────────────────┘
 ```
 

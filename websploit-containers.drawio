@@ -163,6 +163,12 @@
         <mxCell id="LLW9y0FG7gJkehehmOA8-38" value="maze-walker&lt;div&gt;(&lt;span style=&quot;background-color: light-dark(#ffffff, var(--ge-dark-color, #121212)); color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;10.6.6.35)&lt;/span&gt;&lt;/div&gt;" style="aspect=fixed;perimeter=ellipsePerimeter;html=1;align=center;verticalAlign=top;shadow=0;dashed=0;image;image=img/lib/cumulus/container.svg;sketch=0;" vertex="1" parent="iJlCfjiZ61T7vJXyeU1L-6">
           <mxGeometry x="622" y="390" width="67.5" height="60" as="geometry" />
         </mxCell>
+        <mxCell id="ai-track-mind-core" value="mind-core&lt;br&gt;(10.6.6.50)" style="aspect=fixed;perimeter=ellipsePerimeter;html=1;align=center;verticalAlign=top;shadow=0;dashed=0;image;image=img/lib/cumulus/container.svg;sketch=0;" vertex="1" parent="iJlCfjiZ61T7vJXyeU1L-6">
+          <mxGeometry x="622" y="235" width="67.5" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ai-track-mind-core-link" value="AI track (opt-in: --profile ai)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;endFill=0;dashed=1;fontSize=11;labelBackgroundColor=default;" edge="1" parent="iJlCfjiZ61T7vJXyeU1L-6" source="ai-track-mind-core" target="iJlCfjiZ61T7vJXyeU1L-30">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
       </root>
     </mxGraphModel>
   </diagram>
