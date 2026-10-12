@@ -1,0 +1,21 @@
+{
+  "description": "Phase 0 smoke-test pack. Each lab ships its own pack (rules/<lab>.json) in its own PR.",
+  "rules": [
+    {
+      "id": "ping",
+      "match": ["ping"],
+      "reply": "pong"
+    },
+    {
+      "id": "hello",
+      "match": ["hello", "who are you"],
+      "reply": "Hello! I am mind-core, the shared LLM backend of the WebSploit AI track, running in deterministic mode."
+    },
+    {
+      "id": "echo",
+      "match": ["repeat after me:"],
+      "reply": "You said: {{input}}"
+    }
+  ],
+  "fallback": "mind-core (deterministic mode) has no rule for that request."
+}

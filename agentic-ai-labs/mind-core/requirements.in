@@ -1,0 +1,4 @@
+# Direct dependencies of mind-core. Compile the hash-pinned requirements.txt with:
+#   pip-compile --generate-hashes --strip-extras requirements.in
+flask==3.1.3
+waitress==3.0.2
