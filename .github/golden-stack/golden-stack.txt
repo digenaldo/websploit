@@ -23,4 +23,4 @@ service token-tower container=token-tower ip=websploit=10.6.6.40 ports=5020:5020
 service trojan-relay container=trojan-relay ip=websploit=10.6.6.32 ports=5012:5012/tcp restart=unless-stopped platform=- source=build:additional-labs/SSRF mem_limit=- cpus=- deploy_resources=-
 service webgoat container=webgoat ip=websploit=10.6.6.11 ports=- restart=unless-stopped platform=linux/amd64 source=image:santosomar/webgoat mem_limit=- cpus=- deploy_resources=-
 service y-wing container=y-wing ip=websploit=10.6.6.26 ports=- restart=unless-stopped platform=linux/amd64 source=image:santosomar/ywing:latest mem_limit=- cpus=- deploy_resources=-
-profile ai adds: -
+profile ai adds: mind-core

@@ -206,6 +206,37 @@ services:
         ipv4_address: 10.6.6.45
     restart: unless-stopped
 
+  # AI track (opt-in): docker compose --profile ai up -d --build
+  # 10.6.6.50-10.6.6.59 and host ports 5030-5039 are reserved for this track.
+  # See agentic-ai-labs/README.md.
+
+  # Shared LLM backend for the AI labs (deterministic by default; not a target)
+  mind-core:
+    build: ./agentic-ai-labs/mind-core
+    container_name: mind-core
+    profiles: ["ai"]
+    ports:
+      - "5030:5030"
+    networks:
+      websploit:
+        ipv4_address: 10.6.6.50
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys, urllib.request; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:5030/health', timeout=2).status == 200 else 1)"]
+      interval: 10s
+      timeout: 3s
+      start_period: 5s
+      retries: 3
+    mem_limit: 128m
+    cpus: 0.5
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
 # Network configuration
 networks:
   websploit:
@@ -214,4 +245,14 @@ networks:
       config:
         - subnet: 10.6.6.0/24
           gateway: 10.6.6.1
+
+  # Internal network (no internet egress) for the AI track's agent/tool labs.
+  # Compose only creates it once a service joins it; none does yet.
+  websploit-isolated:
+    driver: bridge
+    internal: true
+    ipam:
+      config:
+        - subnet: 10.7.7.0/24
+          gateway: 10.7.7.1
 
